@@ -23,10 +23,11 @@ no_index:
     - examples
 requires:
   File::Basename: '0'
+  File::Slurp: '9999.19'
   Hash::Merge: '0.200'
   perl: '5.010'
 resources:
   bugtracker: https://github.com/Csson/config-fromhash/issues
   homepage: https://github.com/Csson/config-fromhash
   repository: https://github.com/Csson/config-fromhash.git
-version: '0.02'
+version: '0.03'

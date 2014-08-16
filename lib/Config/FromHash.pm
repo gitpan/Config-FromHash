@@ -4,12 +4,11 @@ use strict;
 use warnings;
 use 5.010;
 
-use Data::Dump::Streamer;
 use File::Basename();
 use File::Slurp();
 use Hash::Merge();
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 sub new {
     my($class, %args) = @_;
