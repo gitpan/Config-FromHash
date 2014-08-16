@@ -9,7 +9,7 @@ use File::Basename();
 use File::Slurp();
 use Hash::Merge();
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 sub new {
     my($class, %args) = @_;
@@ -122,11 +122,12 @@ __END__
 
 =encoding utf-8
 
-=head1 Config::FromHash
+=head1 NAME
 
 Config::FromHash - Read config files containing hashes
 
 =head1 SYNOPSIS
+
     # in config file
     {
         thing => 'something',

@@ -1,4 +1,7 @@
 Revision history for Config-FromHash
 
+0.02  2014-08-16 21:10:33 CEST
+		- Fixed POD
+
 0.01  2014-08-16 18:44:47 CEST
         - Initial release
