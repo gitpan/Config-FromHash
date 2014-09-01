@@ -1,5 +1,9 @@
 Revision history for Config-FromHash
 
+0.05  2014-09-01 19:18:30 CEST
+    - Added data() method
+    - Documented get()
+
 0.04  2014-09-01 18:27:56 CEST
     - Require Perl 5.20
     - Introduce require_all_files option
