@@ -1,10 +1,10 @@
 {
-   "abstract" : "Read config files with hashes",
+   "abstract" : "Read config files containing hashes",
    "author" : [
       "Erik Carlsson <csson@cpan.org>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Dist::Milla version v1.0.5, Dist::Zilla version 5.019, CPAN::Meta::Converter version 2.133380",
+   "generated_by" : "Dist::Milla version v1.0.5, Dist::Zilla version 5.019, CPAN::Meta::Converter version 2.140640",
    "license" : [
       "perl_5"
    ],
@@ -39,11 +39,13 @@
             "File::Basename" : "0",
             "File::Slurp" : "9999.19",
             "Hash::Merge" : "0.200",
-            "perl" : "5.010"
+            "experimental" : "0.008",
+            "perl" : "5.020"
          }
       },
       "test" : {
          "requires" : {
+            "Test::Deep" : "0.110",
             "Test::More" : "0.96"
          }
       }
@@ -60,6 +62,6 @@
          "web" : "https://github.com/Csson/config-fromhash"
       }
    },
-   "version" : "0.03"
+   "version" : "0.04"
 }
 

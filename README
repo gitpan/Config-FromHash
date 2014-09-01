@@ -11,10 +11,10 @@ SYNOPSIS
             },
         }
 
-        # in module
+        # somewhere else
         use Config::FromHash;
 
-        my $config = Config::FromHash->new(filename => 'theconfig.conf', data => { thing => 'default' });
+        my $config = Config::FromHash->new(filename => 'path/to/theconfig.conf', data => { deep => { ocean => 'thing' });
 
         # prints 'submarine'
         print $config->get('deep/ocean');
@@ -22,6 +22,81 @@ SYNOPSIS
 DESCRIPTION
     Config::FromHash is yet another config file handler. This one reads
     config files that contain a Perl hash.
+
+    The following options are available
+
+        my $config = Config::FromHash->new(
+            filename => 'path/to/config.file',
+            filenames => ['path/to/highest_priority_config.file', 'path/to/might_be_overwritten.file'],
+            environment => 'production',
+            environments => ['production', 'standard'],
+            data => { default => { data => ['structure'] } },
+            require_all_files => 1,
+        );
+
+    "data"
+
+    Optional. If it exists its value is used as the default settings and
+    will be overwritten if the same setting exists in a config file.
+
+    "filename" or "filenames"
+
+    Optional. "filenames" is an alias for "filename". It reads better to use
+    "filenames" if you have many config files.
+
+    Files are parsed left to right. That is, as soon as a setting is found
+    in a file (while reading left to right) that setting is not overwritten.
+
+    "environment" or "environments"
+
+    Optional. "environments" is an alias for "environment" It reads better
+    to use "environment" if you have many environments.
+
+    If this is set its value is inserted into all config file names, just
+    before the final dot.
+
+    Environments are read left to right. All files from each environment is
+    read before moving on to the next environment. See Examples below.
+
+    An environment can be "undef".
+
+    "require_all_files"
+
+    Default: 0
+
+    Optional. If set to a true value Config::FromHash will "die" if any
+    config file doesn't exist. Otherwise it will silently skip such files.
+
+EXAMPLES
+         my $config = Config::FromHash->new(
+            filename => '/path/to/config.file',
+            data => { some => 'setting' },
+        };
+
+    Will read
+
+        /path/to/config.file
+
+    And any setting that exists in "data" that has not yet been set will be
+    set.
+
+        my $config = Config::FromHash->new(
+            filenames => ['/path/to/highest_priority_config.file', '/path/to/might_be_overwritten.file'],
+            environments => ['production', 'standard', undef],
+            data => { default => { data => ['structure'] } },
+        );
+
+    The following files are read (with decreasing priority)
+
+        /path/to/highest_priority_config.production.file
+        /path/to/might_be_overwritten.production.file
+        /path/to/highest_priority_config.standard.file
+        /path/to/might_be_overwritten.standard.file
+        /path/to/highest_priority_config.file
+        /path/to/might_be_overwritten.file
+
+    And then any setting that exists in "data" that has not yet been set
+    will be set.
 
 AUTHOR
     Erik Carlsson <csson@cpan.org>

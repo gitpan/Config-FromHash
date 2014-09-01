@@ -2,44 +2,52 @@ package Config::FromHash;
 
 use strict;
 use warnings;
-use 5.010;
+use 5.020;
 
 use File::Basename();
 use File::Slurp();
 use Hash::Merge();
 
-our $VERSION = '0.03';
+use experimental 'postderef';
+
+our $VERSION = '0.04';
 
 sub new {
     my($class, %args) = @_;
 
     $args{'data'} ||= {};
     $args{'sep'}  ||= qr!/!;
-
-    if(exists $args{'filenames'} && ref $args{'filenames'} ne 'ARRAY')  {
-        die "'filenames' must be an array-ref. If specifying only one file, you can use 'filename' instead.";
-    }
+    $args{'require_all_files'} ||= 0;
 
     if(exists $args{'filename'} && exists $args{'filenames'}) {
-        unshift @{ $args{'filenames'} } => $args{'filename'};
-        delete $args{'filename'};
+        die "Don't use both 'filename' and 'filenames'.";
     }
-    elsif(exists $args{'filename'}) {
-        $args{'filenames'} = [ $args{'filename'} ];
-        delete $args{'filename'};
+    if(exists $args{'environment'} && exists $args{'environments'}) {
+        die "Don't use both 'environment' and 'environments'.";
+    }
+
+    $args{'filenames'} = $args{'filename'} if exists $args{'filename'};
+
+
+    if(exists $args{'filenames'}) {
+        if(ref $args{'filenames'} ne 'ARRAY') {
+            $args{'filenames'} = [ $args{'filenames'} ];
+        }
     }
     else {
         $args{'filenames'} = [];
     }
+    
 
-    if(exists $args{'environment'} && ref $args{'environment'} ne 'ARRAY') {
-        $args{'environment'} = [ $args{'environment'} ];
-        if(!defined $args{'environment'}->[-1]) {
-            push @{ $args{'environment'} } => undef;
+    $args{'environments'} = $args{'filename'} if exists $args{'filename'};
+
+    if(exists $args{'environments'}) {
+        if(ref $args{'environments'} ne 'ARRAY') {
+            $args{'environments'} = [ $args{'environments'} ];
         }
     }
     else {
-        $args{'environment'} = [ undef ];
+        $args{'environments'} = [ undef ];
     }
 
     my $self = bless \%args => $class;
@@ -47,18 +55,21 @@ sub new {
     Hash::Merge::set_behavior('LEFT_PRECEDENT');
     my $data = $args{'data'};
 
-    if(scalar @{ $args{'filenames'} }) {
+    if(scalar $args{'filenames'}->@*) {
 
-        foreach my $environment (reverse @{ $args{'environment'} }) {
+        foreach my $environment (reverse $args{'environments'}->@*) {
 
             FILE:
-            foreach my $config_file (reverse @{ $args{'filenames'} }) {
+            foreach my $config_file (reverse $args{'filenames'}->@*) {
                 my($filename, $directory, $extension) = File::Basename::fileparse($config_file, qr{\.[^.]+$});
                 my $new_filename = $directory . $filename . (defined $environment ? ".$environment" : '') . $extension;
 
-                next FILE if !-e $new_filename;
+                if(!-e $new_filename) {
+                    die "$new_filename does not exist" if $self->require_all_files;
+                    next FILE;
+                }
                 
-                $data = Hash::Merge::merge($self->_parse($config_file, $data));
+                $data = Hash::Merge::merge($self->parse($config_file, $data));
 
             }
         }
@@ -92,12 +103,12 @@ sub get {
     return $hash;
 }
 
-sub _parse {
+sub parse {
     my $self = shift;
     my $file = shift;
 
     my $contents = File::Slurp::read_file($file, binmode => ':encoding(UTF-8)');
-    my($parsed, $error) = $self->_eval($contents);
+    my($parsed, $error) = $self->eval($contents);
 
     die "Can't parse <$file>: $error" if $error;
     die "<$file> doesn't contain hash" if ref $parsed ne 'HASH';
@@ -106,18 +117,20 @@ sub _parse {
 
 }
 
-sub _eval {
+sub eval {
     my $self = shift;
     my $contents = shift;
 
     return (eval $contents, $@);
 }
 
+sub require_all_files {
+    return shift->{'require_all_files'};
+}
+
 
 1;
 __END__
-
-# ABSTRACT: Read config files with hashes
 
 =encoding utf-8
 
@@ -136,10 +149,10 @@ Config::FromHash - Read config files containing hashes
         },
     }
 
-    # in module
+    # somewhere else
     use Config::FromHash;
 
-    my $config = Config::FromHash->new(filename => 'theconfig.conf', data => { thing => 'default' });
+    my $config = Config::FromHash->new(filename => 'path/to/theconfig.conf', data => { deep => { ocean => 'thing' });
 
     # prints 'submarine'
     print $config->get('deep/ocean');
@@ -147,6 +160,75 @@ Config::FromHash - Read config files containing hashes
 =head1 DESCRIPTION
 
 Config::FromHash is yet another config file handler. This one reads config files that contain a Perl hash.
+
+The following options are available
+
+    my $config = Config::FromHash->new(
+        filename => 'path/to/config.file',
+        filenames => ['path/to/highest_priority_config.file', 'path/to/might_be_overwritten.file'],
+        environment => 'production',
+        environments => ['production', 'standard'],
+        data => { default => { data => ['structure'] } },
+        require_all_files => 1,
+    );
+
+B<C<data>>
+
+Optional. If it exists its value is used as the default settings and will be overwritten if the same setting exists in a config file.
+
+B<C<filename> or C<filenames>>
+
+Optional. C<filenames> is an alias for C<filename>. It reads better to use C<filenames> if you have many config files.
+
+Files are parsed left to right. That is, as soon as a setting is found in a file (while reading left to right) that setting
+is not overwritten.
+
+B<C<environment> or C<environments>>
+
+Optional. C<environments> is an alias for C<environment> It reads better to use C<environment> if you have many environments.
+
+If this is set its value is inserted into all config file names, just before the final dot.
+
+Environments are read left to right. All files from each environment is read before moving on to the next environment. See Examples below.
+
+An environment can be C<undef>.
+
+B<C<require_all_files>>
+
+Default: C<0>
+
+Optional. If set to a true value Config::FromHash will C<die> if any config file doesn't exist. Otherwise it will silently skip such files.
+
+
+=head1 EXAMPLES
+
+     my $config = Config::FromHash->new(
+        filename => '/path/to/config.file',
+        data => { some => 'setting' },
+    };
+
+Will read
+
+    /path/to/config.file
+
+And any setting that exists in C<data> that has not yet been set will be set.
+
+    my $config = Config::FromHash->new(
+        filenames => ['/path/to/highest_priority_config.file', '/path/to/might_be_overwritten.file'],
+        environments => ['production', 'standard', undef],
+        data => { default => { data => ['structure'] } },
+    );
+
+The following files are read (with decreasing priority)
+
+    /path/to/highest_priority_config.production.file
+    /path/to/might_be_overwritten.production.file
+    /path/to/highest_priority_config.standard.file
+    /path/to/might_be_overwritten.standard.file
+    /path/to/highest_priority_config.file
+    /path/to/might_be_overwritten.file
+
+And then any setting that exists in C<data> that has not yet been set will be set.
 
 =head1 AUTHOR
 
