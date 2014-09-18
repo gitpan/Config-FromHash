@@ -1,5 +1,9 @@
 Revision history for Config-FromHash
 
+0.06  2014-09-18 21:00:38 CEST
+    - POD errors fixed
+    - Build prereqs fixed
+
 0.05  2014-09-01 19:18:30 CEST
     - Added data() method
     - Documented get()
